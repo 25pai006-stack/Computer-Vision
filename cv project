@@ -1,1 +1,168 @@
+import cv2
+import numpy as np
+import matplotlib.pyplot as plt
+image_path = "/content/sample_data/Dog kmeans.jpg!w10240"
+img = cv2.imread(image_path)
+if img is None:
+    print(f"Error: Could not load image from {image_path}. Please check the file path and ensure the image exists and is not corrupted.")
+else:
+    img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
+    pixel_values = img.reshape((-1, 3))
+    pixel_values = np.float32(pixel_values)
+    criteria = (cv2.TERM_CRITERIA_EPS + cv2.TERM_CRITERIA_MAX_ITER, 100, 0.2)
+    k = 3
+    _, labels, centers = cv2.kmeans(pixel_values, k, None, criteria, 10, cv2.KMEANS_RANDOM_CENTERS)
+    centers = np.uint8(centers)
+    segmented = centers[labels.flatten()]
+    segmented = segmented.reshape(img.shape)
+    plt.imshow(segmented)
+    plt.title("K-Means Segmentation")
+    plt.show()
+import cv2
+import numpy as np
+import matplotlib.pyplot as plt
+img = cv2.imread("/content/sample_data/chest x ray.jpg",0)
+hist_eq = cv2.equalizeHist(img)
+img_log = np.log1p(np.array(img, dtype="float"))
+fft = np.fft.fft2(img_log)
+fft_shift = np.fft.fftshift(fft)
+rows, cols = img.shape
+crow, ccol = rows//2 , cols//2
+mask = np.ones((rows, cols))
+mask[crow-30:crow+30, ccol-30:ccol+30] = 0
+filtered = fft_shift * mask
+inv_shift = np.fft.ifftshift(filtered)
+img_back = np.fft.ifft2(inv_shift)
+img_exp = np.exp(np.real(img_back))
+plt.subplot(131)
+plt.imshow(img,cmap='gray')
+plt.title("Original")
+plt.subplot(132)
+plt.imshow(hist_eq,cmap='gray')
+plt.title("Histogram EQ")
+plt.subplot(133)
+plt.imshow(img_exp,cmap='gray')
+plt.title("Homomorphic")
+plt.show()
+import cv2
+from skimage.morphology import skeletonize
+import matplotlib.pyplot as plt
+img = cv2.imread("/content/sample_data/Handwritten.jpg",0)
+_,binary = cv2.threshold(img,127,255,cv2.THRESH_BINARY)
+skeleton = skeletonize(binary//255)
+plt.subplot(121)
+plt.imshow(binary,cmap='gray')
+plt.title("Binary Image")
+plt.subplot(122)
+plt.imshow(skeleton,cmap='gray')
+plt.title("Skeleton")
+plt.show()
+import cv2
+import numpy as np
+from google.colab.patches import cv2_imshow
+img = cv2.imread("/content/sample_data/Liver segmentation.jpg",0)
+seed = (150,150)
+segmented = np.zeros(img.shape, np.uint8)
+threshold = 10
+stack = [seed]
+while stack:
+   x,y = stack.pop()
+  if segmented[x,y] == 0:
+     segmented[x,y] = 255
+    for i in [-1,0,1]:
+            for j in [-1,0,1]:
+               nx = x+i
+                ny = y+j
+            if nx>=0 and ny>=0 and nx<img.shape[0] and ny<img.shape[1]:
+            if abs(int(img[nx,ny]) - int(img[x,y])) < threshold:
+                        stack.append((nx,ny))
+cv2_imshow(segmented)
+import cv2
+import matplotlib.pyplot as plt
+img = cv2.imread("/content/sample_data/Brain MRI.jpg",0)
+_,global_th = cv2.threshold(img,127,255,cv2.THRESH_BINARY)
+adaptive = cv2.adaptiveThreshold(img,255,
+                                 cv2.ADAPTIVE_THRESH_GAUSSIAN_C,
+                                 cv2.THRESH_BINARY,11,2)
+plt.subplot(131)
+plt.imshow(img,cmap='gray')
+plt.title("Original")
+plt.subplot(132)
+plt.imshow(global_th,cmap='gray')
+plt.title("Global Threshold")
+plt.subplot(133)
+plt.imshow(adaptive,cmap='gray')
+plt.title("Adaptive Threshold")
+plt.show()
+import cv2
+import matplotlib.pyplot as plt
+img = cv2.imread("/content/sample_data/Lungs.jpg",0)
+sobelx = cv2.Sobel(img,cv2.CV_64F,1,0)
+sobely = cv2.Sobel(img,cv2.CV_64F,0,1)
+canny = cv2.Canny(img,100,200)
+plt.subplot(131)
+plt.imshow(sobelx,cmap='gray')
+plt.title("Sobel X")
+plt.subplot(132)
+plt.imshow(sobely,cmap='gray')
+plt.title("Sobel Y")
+plt.subplot(133)
+plt.imshow(canny,cmap='gray')
+plt.title("Canny Edge")
+plt.show()
+import cv2
+import numpy as np
+import matplotlib.pyplot as plt
+img = cv2.imread("/content/sample_data/MRI_brain_sagittal_section.jpg",0)
+kernel = np.ones((5,5),np.uint8)
+gradient = cv2.morphologyEx(img, cv2.MORPH_GRADIENT, kernel)
+plt.subplot(121)
+plt.imshow(img,cmap='gray')
+plt.title("Original")
+plt.subplot(122)
+plt.imshow(gradient,cmap='gray')
+plt.title("Morphological Gradient")
+plt.show()
+import cv2
+from skimage.feature import graycomatrix, graycoprops
+img = cv2.imread("/content/sample_data/Brick wall.jpg",0)
+glcm = graycomatrix(img,[1],[0],256,symmetric=True,normed=True)
+contrast = graycoprops(glcm,'contrast')
+correlation = graycoprops(glcm,'correlation')
+energy = graycoprops(glcm,'energy')
+homogeneity = graycoprops(glcm,'homogeneity')
+print("Contrast:",contrast)
+print("Correlation:",correlation)
+print("Energy:",energy)
+print("Homogeneity:",homogeneity)
+import cv2
+import numpy as np
+from sklearn import svm
+img = cv2.imread("/content/sample_data/Cell Tumor Microscopy.jpg",0)
+_,th = cv2.threshold(img,127,255,cv2.THRESH_BINARY)
+contours,_ = cv2.findContours(th,cv2.RETR_TREE,cv2.CHAIN_APPROX_SIMPLE)
+ = contours[0]
+area = cv2.contourArea(cnt)
+perimeter = cv2.arcLength(cnt,True)
+circularity = 4*np.pi*(area/(perimeter*perimeter))
+X = [[area,perimeter,circularity]]
+y = [1]
+X.append([100.0, 40.0, 0.7]) # Example features for another hypothetical object
+y.append(0) # Assign a different class label (e.g., 'non-tumor')
+model = svm.SVC()
+model.fit(X,y)
+prediction = model.predict([[area,perimeter,circularity]])
+print("Classification:",prediction)
+!pip install scikit-fuzzy
+import cv2
+import numpy as np
+import skfuzzy as fuzz
+from google.colab.patches import cv2_imshow
+img = cv2.imread("/content/sample_data/Bone Tumor X-Ray.jpg",0)
+data = img.reshape((-1,1))
+cntr,u,_,_,_,_,_ = fuzz.cluster.cmeans(
+    data.T,3,2,error=0.005,maxiter=1000)
+cluster = np.argmax(u,axis=0)
+segmented = cluster.reshape(img.shape)
+cv2_imshow(segmented.astype(np.uint8)*100)
 
